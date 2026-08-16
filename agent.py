@@ -1,4 +1,9 @@
-"""Improved agent implementation with a safer RUN sandbox and optional HF Inference API support."""
+"""Improved agent implementation with a safer RUN sandbox and optional HF Inference API support.
+
+This version adds a very small, deterministic fallback "simple model" so the agent can run
+without downloading large transformer models or requiring an HF token. When transformers are
+available, the code still uses them.
+"""
 import os
 import sys
 import tempfile
@@ -104,6 +109,7 @@ class Agent:
                 # Create a text2text pipeline
                 self.pipe = _pipeline("text2text-generation", model=self.model_name, device=self.device)
             except Exception as e:
+                # If transformers aren't available or model download fails, keep a lightweight fallback
                 print(f"Could not initialize local model pipeline: {e}")
                 self.pipe = None
 
@@ -151,9 +157,58 @@ class Agent:
         except Exception as e:
             return f"HF_ERROR: {e}"
 
+    def _call_simple_model(self, prompt: str) -> str:
+        """A tiny deterministic "model" that chooses simple actions so the agent can run
+        without heavy ML dependencies. It uses the agent's goal and recent history to decide.
+        Rules:
+        - If no actions yet: do a SEARCH with a query derived from the goal.
+        - If the last action was SEARCH, write the search result to agent_notes.txt.
+        - Otherwise finish with DONE.
+        """
+        # Derive a sensible search query from the goal (very simple heuristic)
+        default_query = "autonomous agents"
+        query = default_query
+        try:
+            # Try to extract a short noun-ish phrase from the goal
+            # split by 'about' or 'on' or 'for'
+            g = self.goal.lower()
+            if "about" in g:
+                query = self.goal.split("about", 1)[1].strip()
+            elif "on" in g:
+                query = self.goal.split("on", 1)[1].strip()
+            elif "for" in g:
+                query = self.goal.split("for", 1)[1].strip()
+            else:
+                # Fallback: take first 6 words
+                query = " ".join(self.goal.split()[:6])
+            if not query:
+                query = default_query
+        except Exception:
+            query = default_query
+
+        if not self.history:
+            return f"SEARCH: {query}"
+
+        last = self.history[-1]
+        last_action = last.get("action", "").upper()
+        last_result = last.get("result", "")
+
+        if last_action.startswith("SEARCH:") and last_result:
+            # Write the first 800 chars of the last search result to a notes file
+            content = last_result.strip()[:800]
+            filename = "agent_notes.txt"
+            return f"WRITE: {filename} | {content}"
+
+        # If we already wrote the file, finish
+        if last_action.startswith("WRITE:"):
+            return f"DONE: saved notes to agent_notes.txt"
+
+        # Fallback: done
+        return "DONE: no further steps"
+
     def _call_local_model(self, prompt: str) -> str:
         if not self.pipe:
-            return "MODEL_ERROR: local model pipeline not available"
+            return self._call_simple_model(prompt)
         try:
             out = self.pipe(prompt, max_length=256, do_sample=False)
             if isinstance(out, list) and len(out) > 0 and "generated_text" in out[0]:
