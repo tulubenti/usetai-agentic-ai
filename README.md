@@ -112,6 +112,168 @@ This platform enables the creation and orchestration of intelligent agents capab
 - **Redis**: localhost:6379
 - **Qdrant**: http://localhost:6333
 
+## Running the Agent
+
+### Via API
+
+The agent runs as part of the FastAPI server. Once the server is running, you can interact with agents through the REST API:
+
+#### Create an Agent
+```bash
+curl -X POST http://localhost:8000/api/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Agent",
+    "description": "A sample agent",
+    "model": "gpt-4",
+    "system_prompt": "You are a helpful assistant.",
+    "tools": ["web_search", "code_execution"]
+  }'
+```
+
+#### Start a Conversation
+```bash
+curl -X POST http://localhost:8000/api/conversations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "<agent_id>",
+    "initial_message": "Hello, can you help me?"
+  }'
+```
+
+#### Send Messages to Agent
+```bash
+curl -X POST http://localhost:8000/api/conversations/{conversation_id}/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "What is the weather today?",
+    "role": "user"
+  }'
+```
+
+View complete API documentation at **http://localhost:8000/docs** when the server is running.
+
+### Via Streamlit UI
+
+The Streamlit interface provides a user-friendly way to run and interact with agents:
+
+```bash
+streamlit run frontend/app.py
+```
+
+Then navigate to http://localhost:8501 in your browser. The interface allows you to:
+- Create and configure new agents
+- Start conversations
+- Monitor agent execution in real-time
+- View conversation history and memory
+- Manage available tools
+
+### Programmatically (Python)
+
+You can also run agents directly in Python code:
+
+```python
+from app.core.agent import Agent
+from app.core.memory import ConversationMemory
+from app.integrations.llm.openai import OpenAILLM
+
+# Initialize LLM
+llm = OpenAILLM(
+    api_key="your-api-key",
+    model="gpt-4"
+)
+
+# Create memory system
+memory = ConversationMemory()
+
+# Create agent
+agent = Agent(
+    name="My Agent",
+    llm=llm,
+    memory=memory,
+    tools=["web_search", "code_execution"],
+    system_prompt="You are a helpful assistant."
+)
+
+# Run agent
+response = await agent.run("What is the capital of France?")
+print(response)
+```
+
+### Using LangGraph Workflows
+
+For more complex agent orchestration, use LangGraph workflows:
+
+```python
+from app.core.workflows import create_agent_workflow
+
+# Create a multi-step workflow
+workflow = create_agent_workflow(
+    agents=["researcher", "analyst", "summarizer"],
+    llm_config={
+        "model": "gpt-4",
+        "temperature": 0.7
+    }
+)
+
+# Execute workflow
+result = await workflow.execute({
+    "task": "Research and summarize the latest AI trends",
+    "max_iterations": 10
+})
+
+print(result)
+```
+
+### Configuration
+
+Before running agents, configure them in `.env`:
+
+```bash
+# LLM Configuration
+LLM_PROVIDER=openai              # openai, bedrock, or ollama
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4
+LLM_TEMPERATURE=0.7
+LLM_MAX_TOKENS=2000
+
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/agentic_ai
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Qdrant Vector Store
+QDRANT_URL=http://localhost:6333
+
+# Agent Settings
+AGENT_TIMEOUT=300                # seconds
+AGENT_MAX_ITERATIONS=10
+AGENT_MEMORY_TYPE=hybrid         # short_term, long_term, or hybrid
+
+# Tools
+ENABLE_WEB_TOOLS=true
+ENABLE_CODE_EXECUTION=true
+ENABLE_FILE_TOOLS=true
+```
+
+### Debugging & Monitoring
+
+Enable detailed logging to monitor agent execution:
+
+```bash
+# Set log level in .env
+LOG_LEVEL=DEBUG
+
+# View logs
+docker-compose logs -f api
+```
+
+Monitor agent performance and traces:
+- **Execution logs**: Check database for message and execution records
+- **Performance metrics**: View Prometheus metrics at http://localhost:9090 (if enabled)
+- **Distributed traces**: Check Jaeger UI at http://localhost:16686 (if enabled)
+
 ## Project Structure
 
 ```
