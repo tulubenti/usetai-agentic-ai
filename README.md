@@ -29,9 +29,29 @@ Small demo showing a minimal "agentic" AI implemented in Python. This repository
 
 4. Run the example agent:
 
-   python example.py
+   python example.py --force-fallback
 
 The agent will print step outputs to the console and produce `history.json`. The deterministic fallback will typically perform a SEARCH, WRITE the top of the summary to `agent_notes.txt`, then finish.
+
+Example expected console output (minimal fallback)
+
+```
+STEP 1: SEARCH: autonomous agents
+RESULT:
+Autonomous agent summary text... (truncated)
+----------------------------------------
+STEP 2: WRITE: agent_notes.txt | <first part of summary>
+RESULT:
+WROTE: agent_notes.txt
+----------------------------------------
+STEP 3: DONE: saved notes to agent_notes.txt
+Saved history.json
+```
+
+After running `python example.py` you should see the STEP output above and the run will produce:
+
+- `history.json` — agent action/result history
+- `agent_notes.txt` — saved search summary (created by the WRITE action)
 
 ## Quickstart — Full (optional)
 
@@ -56,6 +76,7 @@ Alternatively, to use the Hugging Face Inference API instead of a local model, s
 - `--model` : model name used by transformers when available (default `google/flan-t5-small`)
 - `--steps` : max agent steps (default 6)
 - `--use-hf`: use Hugging Face Inference API (requires `HF_API_TOKEN`)
+- `--force-fallback`: force the deterministic fallback model even if transformers are available
 
 ## Output files
 
@@ -67,5 +88,3 @@ Alternatively, to use the Hugging Face Inference API instead of a local model, s
 - The `RUN` tool executes Python in a subprocess and applies basic resource limits on POSIX systems; it is NOT a secure sandbox and should not be used to run untrusted code.
 - The fallback model is deterministic and intentionally simple so the project can run without heavy ML dependencies; it is not a replacement for a real language model.
 - The agent performs internet calls (wikipedia). Disable or modify `Tools.wiki_search` if you need offline operation.
-
-If you want, I can also add a short README snippet that shows the exact output you should expect, or add a small test that runs `example.py` and validates the generated files.
