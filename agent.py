@@ -86,7 +86,7 @@ class Tools:
 
 
 class Agent:
-    def __init__(self, goal: str, model_name: str = "google/flan-t5-small", max_steps: int = 6, device: int = -1, use_hf_api: bool = False, hf_token: Optional[str] = None):
+    def __init__(self, goal: str, model_name: str = "google/flan-t5-small", max_steps: int = 6, device: int = -1, use_hf_api: bool = False, hf_token: Optional[str] = None, force_fallback: bool = False):
         self.goal = goal
         self.history: List[Dict[str, Any]] = []
         self.max_steps = max_steps
@@ -94,6 +94,7 @@ class Agent:
         self.device = device
         self.use_hf_api = use_hf_api
         self.hf_token = hf_token
+        self.force_fallback = force_fallback
         self.pipe = None
 
         if self.use_hf_api and not self.hf_token:
@@ -101,8 +102,11 @@ class Agent:
             print("Warning: HF API requested but HF_API_TOKEN not provided — falling back to local model")
             self.use_hf_api = False
 
-        # Lazy initialize local pipeline only when needed
-        if not self.use_hf_api:
+        if self.force_fallback:
+            print("Info: force_fallback enabled — using deterministic fallback model")
+
+        # Lazy initialize local pipeline only when needed and if not forcing fallback
+        if not self.use_hf_api and not self.force_fallback:
             try:
                 # Import transformers here to avoid heavy import on module load
                 from transformers import pipeline as _pipeline
@@ -207,6 +211,9 @@ class Agent:
         return "DONE: no further steps"
 
     def _call_local_model(self, prompt: str) -> str:
+        # Honor the force_fallback flag even if a local pipeline exists
+        if self.force_fallback:
+            return self._call_simple_model(prompt)
         if not self.pipe:
             return self._call_simple_model(prompt)
         try:
