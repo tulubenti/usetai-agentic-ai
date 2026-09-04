@@ -87,6 +87,8 @@ data/uploads/
 data/cache/
 run/
 .secrets/
+history.json
+agent_notes.txt
 
 # LangGraph
 .langsmith/

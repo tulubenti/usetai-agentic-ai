@@ -1,5 +1,6 @@
-transformers
-torch
-wikipedia
-requests
-pytest
+pydantic>=2.8.0
+pydantic-settings>=2.4.0
+requests>=2.31.0
+wikipedia>=1.4.0
+pytest>=8.0.0
+ruff>=0.6.0
