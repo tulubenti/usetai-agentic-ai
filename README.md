@@ -1,90 +1,86 @@
 # usetai-agentic-ai
 
-Small demo showing a minimal "agentic" AI implemented in Python. This repository contains three files you need to run the agent locally.
+Demo-focused Agentic AI project with **open-source/free defaults**. It is structured for local demos, rapid onboarding, and low-cost experimentation.
 
-## Files
+## Project overview
 
-- `agent.py`
-  - Main agent implementation. Provides three simple tools (SEARCH via wikipedia, RUN to execute Python in a limited subprocess, and WRITE to save files). If `transformers`/local model pipeline is available the agent will use it; otherwise a tiny deterministic fallback model runs so the agent can perform a few end-to-end steps without large ML downloads.
-- `example.py`
-  - Small CLI that constructs an `Agent`, runs it, and writes a `history.json` file. Usage: `python example.py` (see options below).
-- `requirements.txt`
-  - Optional full dependencies (e.g. `transformers`, `torch`) for running a local model pipeline. The agent also works with only the minimal dependencies listed below.
+This repository demonstrates an end-to-end agent loop:
+1. User query intake
+2. Planner/provider picks next step
+3. Tool invocation
+4. Final response synthesis
 
-## Quickstart — Minimal (fast)
+Default behavior uses a deterministic offline planner (`heuristic`) so demos run without paid APIs.
 
-1. Clone and enter the repo:
+## Architecture
 
-   git clone https://github.com/tulubenti/usetai-agentic-ai
-   cd usetai-agentic-ai
-
-2. (Recommended) Create and activate a virtual environment:
-
-   python -m venv .venv
-   source .venv/bin/activate   # on Windows: .venv\Scripts\activate
-
-3. Install the minimal packages required for the built-in fallback:
-
-   pip install wikipedia requests
-
-4. Run the example agent:
-
-   python example.py --force-fallback
-
-The agent will print step outputs to the console and produce `history.json`. The deterministic fallback will typically perform a SEARCH, WRITE the top of the summary to `agent_notes.txt`, then finish.
-
-Example expected console output (minimal fallback)
-
-```
-STEP 1: SEARCH: autonomous agents
-RESULT:
-Autonomous agent summary text... (truncated)
-----------------------------------------
-STEP 2: WRITE: agent_notes.txt | <first part of summary>
-RESULT:
-WROTE: agent_notes.txt
-----------------------------------------
-STEP 3: DONE: saved notes to agent_notes.txt
-Saved history.json
+```text
+src/usetai_agentic_ai/
+  agents/        # demo agent orchestration
+  providers/     # planner provider abstraction (heuristic, ollama, hf_inference)
+  tools/         # docs retrieval + web summary tools
+  workflows/     # explicit reasoning/planning loop
+  memory/        # run history persistence
+  utils/         # shared utilities
+examples/        # runnable demo scripts
+docs/            # walkthrough docs
+scripts/         # helper scripts
+tests/           # unit tests
 ```
 
-After running `python example.py` you should see the STEP output above and the run will produce:
+## Quickstart (5-minute local demo)
 
-- `history.json` — agent action/result history
-- `agent_notes.txt` — saved search summary (created by the WRITE action)
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+python -m usetai_agentic_ai.cli --task docs_qa --query "How do I run this demo project locally?"
+```
 
-## Quickstart — Full (optional)
+## Demo tasks
 
-If you want the agent to use a real local transformer model (heavy download and extra packages):
+### 1) Retrieval QA over local docs
 
-1. Install all requirements:
+```bash
+python -m usetai_agentic_ai.cli --task docs_qa --query "What are the default providers?"
+```
 
-   pip install -r requirements.txt
+### 2) Topic/web brief with offline fallback
 
-2. Run the example (same as above):
+```bash
+python -m usetai_agentic_ai.cli --task topic_brief --query "autonomous agents"
+```
 
-   python example.py
+## Provider options (open-source first)
 
-Alternatively, to use the Hugging Face Inference API instead of a local model, set `HF_API_TOKEN` in your environment and run:
+- `heuristic` (default): deterministic, offline, free.
+- `ollama` (optional): local OSS model runtime (`USETAI_PROVIDER=ollama`).
+- `hf_inference` (optional): token-gated (`USETAI_PROVIDER=hf_inference` + `USETAI_HF_API_TOKEN`).
 
-   export HF_API_TOKEN="your-token"    # Windows: set HF_API_TOKEN=your-token
-   python example.py --use-hf
+## Configuration
 
-## example.py options
+Use `.env.example` and set only needed values. Main flags:
+- `USETAI_PROVIDER`
+- `USETAI_ENABLE_DOCS_TOOL`
+- `USETAI_ENABLE_WEB_TOOL`
+- `USETAI_DOCS_PATHS`
 
-- `--goal`  : change the agent goal (default: gather a short summary and save notes)
-- `--model` : model name used by transformers when available (default `google/flan-t5-small`)
-- `--steps` : max agent steps (default 6)
-- `--use-hf`: use Hugging Face Inference API (requires `HF_API_TOKEN`)
-- `--force-fallback`: force the deterministic fallback model even if transformers are available
+## Developer experience
 
-## Output files
+```bash
+make setup
+make lint
+make test
+make demo
+```
 
-- `history.json` — JSON list of agent actions and results created by `example.py`.
-- `agent_notes.txt` — (created by the agent) when the agent writes search results to disk.
+## Troubleshooting
 
-## Safety & limitations
+- If imports fail, ensure editable install ran: `pip install -e .[dev]`
+- If `ollama` provider fails, check local runtime and model availability.
+- If web calls are blocked/offline, `topic_brief` uses fallback text.
 
-- The `RUN` tool executes Python in a subprocess and applies basic resource limits on POSIX systems; it is NOT a secure sandbox and should not be used to run untrusted code.
-- The fallback model is deterministic and intentionally simple so the project can run without heavy ML dependencies; it is not a replacement for a real language model.
-- The agent performs internet calls (wikipedia). Disable or modify `Tools.wiki_search` if you need offline operation.
+## Backward compatibility
+
+Legacy `agent.py` and `example.py` remain as compatibility entrypoints.

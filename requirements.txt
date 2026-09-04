@@ -1,5 +1,1 @@
-transformers
-torch
-wikipedia
-requests
-pytest
+-e .[dev]
