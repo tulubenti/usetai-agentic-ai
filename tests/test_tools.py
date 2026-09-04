@@ -1,6 +1,11 @@
 from pathlib import Path
 
 from usetai_agentic_ai.tools.docs_retrieval import DocsRetrievalTool
+from usetai_agentic_ai.tools.web_summary import WebSummaryTool
+
+
+def _raise_network_error(*args, **kwargs):  # noqa: ANN002,ANN003,ARG001
+    raise RuntimeError("network down")
 
 
 def test_docs_retrieval_returns_top_source(tmp_path: Path) -> None:
@@ -16,3 +21,9 @@ def test_docs_retrieval_returns_top_source(tmp_path: Path) -> None:
 
     assert "Top local source:" in result
     assert "a.md" in result
+
+
+def test_web_summary_fallback_when_wikipedia_fails(monkeypatch) -> None:
+    monkeypatch.setattr("wikipedia.summary", _raise_network_error)
+    result = WebSummaryTool().run("autonomous agents")
+    assert "Offline fallback summary" in result

@@ -19,7 +19,7 @@ class HFInferencePlannerProvider(BasePlannerProvider):
             "kind must be tool or final. tool options: docs_retrieval, web_summary.\n"
             f"task={state.task}\nquery={state.query}\nhistory={json.dumps(state.history)[-2000:]}"
         )
-        headers = {"Authorization": "******"}
+        headers = {"Authorization": "Bearer " + self.token}
         data = {"inputs": prompt, "options": {"wait_for_model": True}}
         try:
             resp = requests.post(

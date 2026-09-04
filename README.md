@@ -34,7 +34,7 @@ tests/           # unit tests
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
+pip install -e .
 python -m usetai_agentic_ai.cli --task docs_qa --query "How do I run this demo project locally?"
 ```
 
@@ -75,9 +75,20 @@ make test
 make demo
 ```
 
+If your environment does not have `make` (common on Windows), use the equivalent commands below.
+
+Without `make`, run:
+
+```bash
+pip install -e .[dev]
+ruff check .
+pytest -q
+python -m usetai_agentic_ai.cli --task docs_qa --query "How do I run this demo project locally?"
+```
+
 ## Troubleshooting
 
-- If imports fail, ensure editable install ran: `pip install -e .[dev]`
+- If imports fail, ensure editable runtime install ran: `pip install -e .`
 - If `ollama` provider fails, check local runtime and model availability.
 - If web calls are blocked/offline, `topic_brief` uses fallback text.
 

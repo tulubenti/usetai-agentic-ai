@@ -11,7 +11,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Run demo Agentic AI workflows with open/free defaults."
     )
     parser.add_argument("--task", choices=["docs_qa", "topic_brief"], default="docs_qa")
-    parser.add_argument("--query", required=True)
+    parser.add_argument("--query", default=None)
     parser.add_argument("--provider", choices=["heuristic", "ollama", "hf_inference"], default=None)
     parser.add_argument("--history-out", default=None)
     return parser
@@ -26,7 +26,12 @@ def main() -> None:
         settings.provider = args.provider
 
     agent = DemoAgent(settings=settings)
-    result = agent.run(task=args.task, query=args.query, history_file=args.history_out)
+    query = args.query or (
+        "How do I run this demo project locally?"
+        if args.task == "docs_qa"
+        else "autonomous agents"
+    )
+    result = agent.run(task=args.task, query=query, history_file=args.history_out)
 
     print("=== Final Response ===")
     print(result["response"])

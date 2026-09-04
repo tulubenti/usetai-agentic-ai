@@ -19,3 +19,18 @@ def test_demo_workflow_docs_qa_runs_tool_then_final() -> None:
     assert result["history"][0]["action"] == "docs_retrieval"
     assert result["history"][-1]["action"] == "final"
     assert "Final answer" in result["response"]
+
+
+def test_demo_workflow_reports_missing_tool() -> None:
+    workflow = DemoWorkflow(
+        provider=HeuristicPlannerProvider(),
+        tools={},
+        max_steps=3,
+    )
+
+    result = workflow.run(task="docs_qa", query="how to run demo")
+
+    assert result["history"][0]["action"] == "docs_retrieval"
+    assert "not enabled" in result["history"][0]["output"]
+    assert result["history"][-1]["action"] == "final"
+    assert "Requested tool 'docs_retrieval' is not enabled." in result["response"]
